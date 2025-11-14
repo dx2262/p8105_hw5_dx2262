@@ -1,0 +1,78 @@
+---
+title: "p8105_hw5_dx2262"
+output: github_document
+---
+
+
+Load packages.
+```{r}
+library(tidyverse)
+library(broom)
+```
+
+## Problem 2
+
+```{r, error=TRUE}
+x = rnorm(n, mean = mu, sd = sigma)
+t_test = t.test(x, mu = 0)
+tidy_tt = tidy(t_test)
+```
+
+
+
+
+
+
+
+
+
+
+## Problem 3
+
+```{r}
+homicide_data <- 
+  read_csv("data/homicide-data.csv") %>% 
+  janitor::clean_names() %>% 
+  drop_na()
+```
+
+
+Create city_state variable.
+
+```{r}
+homicide_data <- 
+  homicide_data %>% 
+  mutate(
+    city_state = str_c(city, state, sep = ",")
+  )
+```
+
+
+Total number of homicides, unsolved homicides.
+
+```{r}
+homicide_data %>% 
+  group_by(city_state) %>% 
+  summarize(
+    total_homicides = n(),
+    unsolved_homicides = sum(disposition %in% c("Closed without arrest", "Open/No arrest"))
+  )
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
