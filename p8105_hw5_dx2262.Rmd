@@ -60,10 +60,74 @@ homicide_data %>%
 ```
 
 
+Unsolved homicides in the city of Baltimore, MD.
+
+```{r}
+balt <- 
+  homicide_data %>% 
+  filter(city_state == "Baltimore,MD") %>% 
+  summarize(
+    total = n(),
+    unsolved = sum(disposition %in% c("Closed without arrest", "Open/No arrest"))
+  )
+
+pt <- prop.test(pull(balt, unsolved), pull(balt,total))
+pt_tidy <- tidy(pt)
+
+pull(pt_tidy, estimate)
+pull(pt_tidy, conf.low)
+pull(pt_tidy, conf.high)
+
+```
+
+Each of the cities in the dataset.
+
+```{r}
+city_results <- 
+  homicide_data %>%
+  group_by(city_state) %>%
+  summarize(
+    total = n(),
+    unsolved = sum(disposition %in% c("Closed without arrest", "Open/No arrest")),
+    .groups = "drop"
+  ) %>%
+  mutate(
+    prop_test = map2(unsolved, total, ~prop.test(.x, .y))
+  ) %>%
+  mutate(
+    prop_tidy = map(prop_test, tidy)
+  ) %>%
+  unnest(prop_tidy) %>%
+  select(
+    city_state,
+    estimate,
+    conf.low,
+    conf.high
+  )
+
+city_results
+```
 
 
+Create a plot.
 
-
+```{r fig.width=12, fig.height=8, dpi=300}
+city_results %>%
+  arrange(estimate) %>%
+  mutate(
+    city_state = factor(city_state, levels = city_state)
+  ) %>%
+  ggplot(aes(x = city_state, y = estimate)) +
+  geom_point() +
+  geom_errorbar(aes(ymin = conf.low, ymax = conf.high), width = 0.2) +
+  coord_flip() + 
+  labs(
+    x = "City",
+    y = "Proportion of Unsolved Homicides",
+    title = "Estimated Proportion of Unsolved Homicides by City"
+  ) +
+  theme_minimal()
+```
 
 
 
