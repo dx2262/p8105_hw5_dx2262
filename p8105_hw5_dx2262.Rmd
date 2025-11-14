@@ -12,18 +12,86 @@ library(broom)
 
 ## Problem 2
 
-```{r, error=TRUE}
-x = rnorm(n, mean = mu, sd = sigma)
-t_test = t.test(x, mu = 0)
-tidy_tt = tidy(t_test)
+```{r}
+sim_results_df <- 
+  expand_grid(
+    mu = 0:6, 
+    iter = 1:5000
+  ) %>%
+  mutate(
+    x = map(mu, ~ rnorm(30, mean = .x, sd = 5)),
+    ttest = map(x, ~ t.test(.x, mu = 0)),
+    tidy = map(ttest, tidy)
+  ) %>%
+  unnest(tidy) %>%
+  select(
+    mu,
+    iter,
+    estimate, 
+    p_value = p.value
+  )
+
 ```
 
 
+Make plots.
+
+```{r fig.width=12, fig.height=6, dpi=300}
+sim_results_df %>%
+  group_by(mu) %>%
+  summarize(power = mean(p_value < 0.05)) %>% 
+  ggplot(aes(x = mu, y = power)) +
+  geom_point() +
+  geom_line() +
+  labs(
+    x = "True mean",
+    y = "Power",
+    title = "Empirical Power Curve for One-Sample t-test"
+  ) +
+  theme_minimal()
+```
+
+The farther mu is from 0 (effect size grows), the more often the test correctly rejects the null.
 
 
+```{r}
+est_summary <- 
+  sim_results_df %>%
+  group_by(mu) %>%
+  summarize(
+    mean_est = mean(estimate),
+    mean_est_rejected = mean(estimate[p_value < 0.05]),
+    .groups = "drop"
+  )
+```
 
+```{r fig.width=12, fig.height=6, dpi=300}
+est_summary %>% 
+  ggplot(aes(x = mu, y = mean_est)) +
+  geom_point() +
+  geom_line() +
+  labs(
+    x = "True mean",
+    y = "Average estimate of mu_hat",
+    title = "All Samples"
+  ) +
+  theme_minimal()
+```
 
+```{r fig.width=12, fig.height=6, dpi=300}
+est_summary %>% 
+  ggplot(aes(x = mu, y = mean_est_rejected)) +
+  geom_point() +
+  geom_line() +
+  labs(
+    x = "True mean",
+    y = "Average estimate of mu_hat",
+    title = "Rejected Samples"
+  ) +
+  theme_minimal()
+```
 
+The sample average of mu_hat across tests for which the null is rejected does not equal to the true value of mu when mu is small. This is because we have conditioned on having rejected null, selecting only samples whose means were far enough from 0 to cross the significance threshold. This artificially inflates the average estimate.
 
 
 
